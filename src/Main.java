@@ -17,7 +17,40 @@ public class Main {
 //        properties=kvartiriKiev("http://kvartiri.kiev.ua/index.php?id_tran=2");
 //        properties.forEach(System.out::println);
 //        System.out.println("------------------------------------------------------------------------------------------");
-        planetaObolon("http://planetaobolon.com.ua");
+        //planetaObolon("http://planetaobolon.com.ua");
+        avisoKiev("http://www.aviso.ua/kiev/list.php?r=101");
+    }
+    public static List<InfoProperty> avisoKiev(String siteUrl) throws IOException{
+        List<String> urls=new ArrayList<>();
+        List<InfoProperty> properties=new ArrayList<>();
+        Document doc=Jsoup.connect(siteUrl).get();
+        Elements div=doc.select("div.creame");
+        Element a;
+        for (Element el:div){
+            a=el.select("a").first();
+            urls.add(a.attr("href"));
+        }
+        Document prop;
+        Element info;
+        String inf;
+        String address,tel;
+        for (String u:urls){
+            prop=Jsoup.connect(u).get();
+            info=prop.select(".phone").first();
+            inf=info.text();
+            address="";
+            for (int i=inf.indexOf("Район:")+6;i<inf.indexOf("Комнат:");i++){
+                address+=inf.charAt(i);
+            }
+            address=address.trim();
+            tel="";
+            for (int i = inf.indexOf("Тел:") + 4;i<inf.indexOf("Email:") || i<inf.length();i++) {
+                tel+=inf.charAt(i);
+            }
+            tel=tel.trim();
+            properties.add(new InfoProperty(tel,address));
+        }
+        return properties;
     }
     public static List<InfoProperty> planetaObolon(String siteUrl) throws IOException{
         List<String> urls=new ArrayList<>();
