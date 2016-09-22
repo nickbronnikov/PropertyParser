@@ -2,11 +2,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+
+import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-
 
 
 public class Main {
@@ -17,8 +18,140 @@ public class Main {
 //        properties=kvartiriKiev("http://kvartiri.kiev.ua/index.php?id_tran=2");
 //        properties.forEach(System.out::println);
 //        System.out.println("------------------------------------------------------------------------------------------");
-        //planetaObolon("http://planetaobolon.com.ua");
-        avisoKiev("http://www.aviso.ua/kiev/list.php?r=101");
+//        properties=planetaObolon("http://planetaobolon.com.ua");
+//        properties.forEach(System.out::println);
+//        System.out.println("------------------------------------------------------------------------------------------");
+//        properties=avisoKiev("http://www.aviso.ua/kiev/list.php?r=101");
+//        properties.forEach(System.out::println);
+//            realtUa("http://realt.ua/Db2/0Pr_Kv.php?cnt_all=5829&Obl=11&valt=2&sAkc=1&srtb0=19&srtby=19&rsrt=1");
+            //ciUa("http://100realty.ua/realty_search/apartment/sale/cur_3?extended=0");
+        //rieltorUa("http://rieltor.ua/flats-sale/?f-owners=1");
+        OLX("http://www.olx.ua/nedvizhimost/prodazha-kvartir/");
+    }
+    public static List<newProperty> OLX(String siteUrl) throws IOException{
+        String num="0987654321";
+        List<String> urls=new ArrayList<>();
+        List<String> id=new ArrayList<>();
+        List<newProperty> properties=new ArrayList<>();
+        Document doc=Jsoup.connect(siteUrl).get();
+        Elements ad=doc.select("td.offer");
+        String ids,u;
+        for (Element el:ad){
+            u=el.select("h3.x-large").first().select("a").first().attr("href");
+            urls.add(u);
+        }
+        Document prop,ajax;
+        String tel,address,description,json,au;
+        String [] tels;
+        int last;
+        for (String url:urls){
+            ids="";
+            prop= Jsoup.connect(url).get();
+            address=prop.select("strong.c2b").first().text();
+            description=prop.select("h1.lheight28").first().text();
+            for (int i=url.indexOf("ID")+2;i<url.indexOf(".html");i++){
+                ids+=url.charAt(i);
+            }
+            au="http://www.olx.ua/ajax/misc/contact/phone/"+ids+"/white/";
+            try {
+                ajax = Jsoup.connect(au).ignoreContentType(true).get();
+                au = ajax.toString();
+                json = "";
+                for (int i = au.indexOf("<body>") + 6; i < au.indexOf("</body>"); i++) {
+                    json += au.charAt(i);
+                }
+                if (!json.contains("span>")) tel = checkNumber(json).trim();
+                else {
+                    last = 0;
+                    tel = "";
+                    tels = json.split("/span");
+                    for (int i = 0; i < tels.length; i++) {
+                        if (checkNumber(tels[i]) != "")
+                            tel += checkNumber(tels[i]).trim() + ", ";
+                    }
+                    au = "";
+                    for (int i = 0; i < tel.length(); i++) {
+                        if (num.contains(tel.charAt(i) + "")) {
+                            last = i;
+                        }
+                    }
+                    for (int i = 0; i <= last; i++) {
+                        au += tel.charAt(i);
+                    }
+                    tel = au;
+                }
+                properties.add(new newProperty(tel, address, description));
+            } catch (HttpStatusException e){
+                System.out.println("Нет доступа к базе OLX");
+            }
+        }
+        properties.forEach(System.out::println);
+        return properties;
+    }
+    public static List<newProperty> rieltorUa(String siteUrl) throws IOException {
+        List<String> urls=new ArrayList<>();
+        List<newProperty> properties=new ArrayList<>();
+        Document doc=Jsoup.connect(siteUrl).get();
+        Elements ad=doc.select("h2.catalog-item__title");
+        Element div;
+        for (Element el:ad){
+            urls.add("http://rieltor.ua"+el.select("a").first().attr("href"));
+        }
+        Document prop;
+        String tel,address,description;
+        Element el;
+        Elements a;
+        for (String url:urls){
+            prop=Jsoup.connect(url).get();
+            tel=prop.select("div.ov-author__phone").first().text();
+            address=prop.select("dd.description-text").last().text();
+            description=prop.select("h1.catalog-view-header__title").first().text();
+            properties.add(new newProperty(tel,address,description));
+        }
+        properties.forEach(System.out::println);
+        return properties;
+    }
+    public static List<newProperty> ciUa(String siteUrl) throws IOException {
+        List<String> urls=new ArrayList<>();
+        List<newProperty> properties=new ArrayList<>();
+        Document doc=Jsoup.connect(siteUrl).get();
+        Elements ad=doc.select("div.realty-object-card");
+        Element div;
+        for (Element el:ad){
+            div=el.select("div.object-address").first().select("a").first();
+            urls.add("http://100realty.ua"+div.attr("href"));
+        }
+        Document prop;
+        String tel,address,description;
+        for (String url:urls){
+            prop=Jsoup.connect(url).get();
+            address=prop.getElementById("object-address").text();
+            description=prop.getElementById("squeeze").select("h1").first().text();
+            tel=prop.select("span.object-contacts-one-phone").last().text();
+            properties.add(new newProperty(tel,address,description));
+        }
+        properties.forEach(System.out::println);
+        return properties;
+    }
+    public static List<InfoProperty> realtUa(String siteUrl) throws IOException{
+        List<String> urls=new ArrayList<>();
+        List<InfoProperty> properties=new ArrayList<>();
+        Document doc=Jsoup.connect(siteUrl).get();
+        Elements table=doc.select("table.Forma");
+        int k=1;
+        for (Element el:table){
+            for (Element e:el.select("a")){
+                if (k%2!=0) urls.add(e.attr("href"));
+                k++;
+            }
+        }
+        urls.forEach(System.out::println);
+        Document prop;
+        for (String url:urls){
+            //prop=Jsoup.connect(url).get();
+
+        }
+        return properties;
     }
     public static List<InfoProperty> avisoKiev(String siteUrl) throws IOException{
         List<String> urls=new ArrayList<>();
@@ -118,7 +251,6 @@ public class Main {
             address=prop.select("address").first().text();
             properties.add(new InfoProperty(tel,address));
         }
-        properties.forEach(System.out::println);
         return properties;
     }
     public static List<InfoProperty> kvartiriKiev(String siteUrl) throws IOException {
@@ -237,6 +369,50 @@ class InfoProperty{
         return "InfoProperty{" +
                 "num='" + num + '\'' +
                 ", adress='" + adress + '\'' +
+                '}';
+    }
+}
+class newProperty{
+    String tel;
+    String address;
+    String description;
+
+    public String getTel() {
+        return tel;
+    }
+
+    public void setTel(String tel) {
+        this.tel = tel;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public newProperty(String tel, String address, String description) {
+        this.tel = tel;
+        this.address = address;
+        this.description = description;
+    }
+
+    @Override
+    public String toString() {
+        return "newProperty{" +
+                "tel='" + tel + '\'' +
+                ", address='" + address + '\'' +
+                ", description='" + description + '\'' +
                 '}';
     }
 }
